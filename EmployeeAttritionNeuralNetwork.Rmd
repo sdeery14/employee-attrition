@@ -1,0 +1,76 @@
+---
+title: "HR Attrition Neural Network"
+output: html_document
+date: "2022-12-19"
+---
+
+```{r}
+library(keras)
+library(tidyverse)
+library(caret)
+HRData <- read_csv("HR Employee Attrition.csv")
+HRData <- HRData %>% select(c(-EmployeeCount, -StandardHours, -Over18, -EmployeeNumber))
+HRData$Attrition<-ifelse(HRData$Attrition=="Yes",1,0)
+# Update each column to be a factor – if it's a string 
+#HRData <- mutate_if(HRData,is.character, factor)
+```
+
+Create test and train data sets
+```{r}
+trainList <- createDataPartition(y=HRData$Attrition, p=.70, list=FALSE)
+trainData <- HRData[trainList, c("Attrition", "DistanceFromHome", "DailyRate", "Age", "Education")]
+testData <- HRData[-trainList, c("Attrition", "DistanceFromHome", "DailyRate", "Age", "Education")]
+```
+
+Use a binary model
+- units is the number of neurons
+- ReLu is linear (identity) for positive values, and zero for negative
+- "sigmoid" is typically used in the final layer for binary analysis
+- It maps the output to a [0,1] range
+- input_shape is the number of X inputs (we have 3)
+```{r}
+model = keras_model_sequential() %>%
+  layer_dense(units=64, activation = "relu", input_shape=4) %>%
+  layer_dense(units=1, activation="sigmoid")
+```
+
+Compile the model
+- loss == how tyo measure error
+- Use binary_crossentropy in binary problems where one of the two choices is correct
+- optimizer == how to optimize during iterations
+- optimizer_rmsprop is a good default
+- metrics == list of metrics to be evaluated
+- Often use metrics = "accuracy"
+```{r}
+compile(model,
+        loss = "binary_crossentropy",
+        optimizer=optimizer_rmsprop(),
+        metrics="accuracy")
+```
+
+Run the binary model
+- epochs: the number of times that the learning algorithm will work through the entire training dataset
+- batch_size: the number of smaples to work through before updating the internal model parameters; 64, 128, 256 are typical default numbers
+- validation_split: the percentage to validate the model - avoid overfitting
+- the rest is to train the model
+```{r}
+x_data <- as.matrix(select(trainData, -Attrition))
+history = fit(model,
+              x_data,
+              trainData$Attrition,
+              epochs=20,
+              batch_size=128,
+              validation_split=0.2)
+```
+
+Use the model
+- Do prediction
+```{r}
+x_data_test <- as.matrix(testData[,1:4])
+y_data_pred=predict(model, x_data_test)
+```
+
+See how good the prediction was
+```{r}
+confusionMatrix(as.factor(y_data_pred), as.factor(testData$Attrition))
+```

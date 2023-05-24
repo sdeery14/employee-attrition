@@ -1,0 +1,41 @@
+---
+title: "HR Employee Analysis SVM"
+output: html_document
+date: "2022-12-11"
+---
+
+```{r}
+library(tidyverse)
+library(caret)
+HRData <- read_csv("HR Employee Attrition.csv")
+HRData <- HRData %>% select(c(-EmployeeCount, -StandardHours, -Over18, -EmployeeNumber))
+```
+
+Split the data into train and test data
+```{r}
+trainList <- createDataPartition(y=HRData$Attrition, p=.70, list=FALSE)
+training <- HRData[trainList,]
+testing <- HRData[-trainList,]
+```
+
+
+
+```{r}
+library(kernlab)
+svm_model <- train(Attrition ~ ., data=training, method="svmRadial", preProc=c("center", "scale"))
+svm_model$finalModel
+```
+
+
+```{r}
+svmPred <- predict(svm_model, newdata=testing, type="raw")
+actualAttrition <- as.factor(testing$Attrition=="Yes")
+confMatrix <- table(svmPred, actualAttrition)
+confMatrix
+```
+```{r}
+accuracy <- 1 - (sum(confMatrix) - sum(diag(confMatrix))) / sum(confMatrix)
+accuracy
+```
+
+

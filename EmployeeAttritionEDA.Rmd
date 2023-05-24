@@ -1,0 +1,395 @@
+---
+title: "HR Employee Analysis Data Exploration"
+name: Sean Deery
+output: pdf_document
+date: "2022-11-07"
+---
+
+Read the CSV file into a dataframe
+```{r}
+library(tidyverse)
+HRData <- read_csv("HR Employee Attrition.csv")
+glimpse(HRData)
+```
+
+```{r}
+range(HRData$EmployeeCount)
+range(HRData$StandardHours)
+table(HRData$Over18)
+```
+
+```{r}
+HRData <- HRData %>% select(c(-EmployeeCount, -StandardHours, -Over18, -EmployeeNumber))
+```
+
+
+Attrition will be our dependent variable. 
+
+We can get rid of EmployeeCount and EmployeeNumber because they won't contribute anything. We can also remove Over18 and StandardHours because they are the same for each employee.
+
+The rest of the variables can be used as independent variables, and can be categorized as such:
+
+- Personal Details: Age, Education, EducationField, Gender, MaritalStatus, NumCompaniesWorked, RelationshipSatisfaction
+
+- Work Life: BusinessTravel, Department, DistanceFromHome, EnvironmentalSatisfaction, JobInvolvement, JobLevel, JobRole, JobSatisfaction, OverTime, PerformanceRating, TotalWorkingYears, TrainingTimesLastYear, WorkLifeBalance, YearsAtCompany, YearsInCurrentRole, YearsSinceLAstPromotion, YearsWithCurrentManager
+
+- Income: DailyRate, HourlyRate, MonthlyIncome, MonthlyRate, PercentSalaryHike, StockOptionLevel
+
+
+Check if there are any empty values.
+```{r}
+any(is.na(HRData))
+```
+
+Check out Attrition. 
+```{r}
+table(HRData$Attrition)
+nrow(HRData[HRData$Attrition=="No",])/nrow(HRData)
+nrow(HRData[HRData$Attrition=="Yes",])/nrow(HRData)
+```
+```{r}
+ggplot(HRData) +
+  aes(x=Attrition) +
+  geom_bar()
+```
+
+
+Function to explore numerical columns
+```{r}
+exploreNumVariable <- function(num_variable) {
+  # Get a summary of the data
+  variable.summary <- summary(HRData[,num_variable])
+  # Create the Group By
+  variable.groupby <- HRData %>%
+    group_by(Attrition) %>%
+    summarize(var_mean=mean(.data[[num_variable]]))
+  # Create the Histogram
+  variable.hist <- ggplot(HRData) + 
+    aes(x=.data[[num_variable]], fill=Attrition) +
+    geom_histogram()
+  # Create the Box Plot
+  variable.box <- ggplot(HRData) + 
+    aes(x=Attrition, y=.data[[num_variable]]) +
+    geom_boxplot()
+  return(list(variable.summary, variable.groupby, variable.hist, variable.box))
+}
+```
+
+Function to explore categorical columns
+```{r}
+exploreCatVariable <- function(cat_variable) {
+  # Create a table showing frequency distribution 
+  variable.table <- table(HRData[, cat_variable])
+  # Create a bar chart showing frequency distribution by Attrition
+  variable.bar <- ggplot(HRData) +
+    aes(x=.data[[cat_variable]], fill=Attrition) +
+    geom_bar(position="dodge") +
+    theme(axis.text.x=element_text(angle=90, hjust=1))
+  return(list(variable.table, variable.bar))
+}
+
+```
+
+
+
+
+Exploring Personal Details: 
+- Age
+- Education
+- EducationField
+- Gender
+- MaritalStatus
+- RelationshipSatisfaction
+
+Age
+- The average age of an employee who left is lower than the employees who don't.
+
+
+```{r}
+exploreNumVariable("Age")
+```
+
+
+Education
+1 'Below College'
+2 'College'
+3 'Bachelor'
+4 'Master'
+5 'Doctor'
+- It doesn;t seem like there is much of a difference when it comes to education levels.
+
+```{r}
+exploreNumVariable("Education")
+```
+
+
+EducationField
+
+```{r}
+exploreCatVariable("EducationField")
+```
+
+
+Gender
+
+```{r}
+exploreCatVariable("Gender")
+```
+
+
+MaritalStatus
+- It looks like attrition is higher for employees who are single
+
+```{r}
+exploreCatVariable("MaritalStatus")
+```
+
+```{r}
+single.attrition <- nrow(HRData[HRData$MaritalStatus=="Single" & HRData$Attrition=="Yes",])
+single.total <- nrow(HRData[HRData$MaritalStatus=="Single",])
+single.attrition/single.total
+
+married.attrition <- nrow(HRData[HRData$MaritalStatus=="Married" & HRData$Attrition=="Yes",])
+married.total <- nrow(HRData[HRData$MaritalStatus=="Married",])
+married.attrition/married.total
+
+divorced.attrition <- nrow(HRData[HRData$MaritalStatus=="Divorced" & HRData$Attrition=="Yes",])
+divorced.total <- nrow(HRData[HRData$MaritalStatus=="Divorced",])
+divorced.attrition/divorced.total
+```
+
+
+
+RelationshipSatisfaction
+1 'Low'
+2 'Medium'
+3 'High'
+4 'Very High'
+- There doesn;t seem to be a difference in Attrition when it comes to relationship satisfaction
+
+```{r}
+exploreNumVariable("RelationshipSatisfaction")
+```
+
+
+
+
+
+Exploring Work Life: 
+- BusinessTravel
+- Department
+- DistanceFromHome
+- EnvironmentalSatisfaction
+- JobInvolvement
+- JobLevel
+- JobRole
+- JobSatisfaction
+- NumCompaniesWorked
+- OverTime
+- PerformanceRating
+- StandardHours
+- TotalWorkingYears
+- TrainingTimesLastYear
+- WorkLifeBalance
+- YearsAtCompany
+- YearsInCurrentRole
+- YearsSinceLAstPromotion
+- YearsWithCurrentManager
+
+
+BusinessTravel
+
+```{r}
+exploreCatVariable("BusinessTravel")
+```
+
+
+Department
+
+```{r}
+exploreCatVariable("Department")
+```
+
+```{r}
+sales.attrition <- nrow(HRData[HRData$Department=="Sales" & HRData$Attrition=="Yes",])
+sales.total <- nrow(HRData[HRData$Department=="Sales",])
+sales.attrition/sales.total
+
+rd.attrition <- nrow(HRData[HRData$Department=="Research & Development" & HRData$Attrition=="Yes",])
+rd.total <- nrow(HRData[HRData$Department=="Research & Development",])
+rd.attrition/rd.total
+
+hr.attrition <- nrow(HRData[HRData$Department=="Human Resources" & HRData$Attrition=="Yes",])
+hr.total <- nrow(HRData[HRData$Department=="Human Resources",])
+hr.attrition/hr.total
+```
+
+
+
+DistanceFromHome
+
+```{r}
+exploreNumVariable("DistanceFromHome")
+```
+
+
+EnvironmentSatisfaction
+1 'Low'
+2 'Medium'
+3 'High'
+4 'Very High'
+
+```{r}
+exploreNumVariable("EnvironmentSatisfaction")
+```
+
+
+JobInvolvement
+1 'Low'
+2 'Medium'
+3 'High'
+4 'Very High'
+
+```{r}
+exploreNumVariable("JobInvolvement")
+```
+
+
+JobLevel
+```{r}
+exploreNumVariable("JobLevel")
+```
+
+
+JobRole
+```{r}
+exploreCatVariable("JobRole")
+```
+
+
+JobSatisfaction
+1 'Low'
+2 'Medium'
+3 'High'
+4 'Very High'
+```{r}
+exploreNumVariable("JobSatisfaction")
+```
+
+
+NumCompaniesWorked
+```{r}
+exploreNumVariable("NumCompaniesWorked")
+```
+
+OverTime
+```{r}
+exploreCatVariable("OverTime")
+```
+
+
+PerformanceRating
+1 'Low'
+2 'Good'
+3 'Excellent'
+4 'Outstanding'
+```{r}
+exploreNumVariable("PerformanceRating")
+```
+
+
+TotalWorkingYears
+```{r}
+exploreNumVariable("TotalWorkingYears")
+```
+
+
+TrainingTimesLastYear
+```{r}
+exploreNumVariable("TrainingTimesLastYear")
+```
+
+
+WorkLifeBalance
+1 'Bad'
+2 'Good'
+3 'Better'
+4 'Best'
+```{r}
+exploreNumVariable("WorkLifeBalance")
+```
+
+
+YearsAtCompany
+```{r}
+exploreNumVariable("YearsAtCompany")
+```
+
+
+YearsInCurrentRole
+```{r}
+exploreNumVariable("YearsInCurrentRole")
+```
+
+
+
+YearsSinceLastPromotion
+```{r}
+exploreNumVariable("YearsSinceLastPromotion")
+```
+
+
+YearsWithCurrManager
+```{r}
+exploreNumVariable("YearsWithCurrManager")
+```
+
+
+Exploring Income
+- DailyRate
+- HourlyRate
+- MonthlyIncome
+- MonthlyRate
+- PercentSalaryHike
+- StockOptionLevel
+
+
+DailyRate
+
+```{r}
+exploreNumVariable("DailyRate")
+```
+
+
+HourlyRate
+
+```{r}
+exploreNumVariable("HourlyRate")
+```
+
+
+MonthlyIncome
+
+```{r}
+exploreNumVariable("MonthlyIncome")
+```
+
+
+MonthlyRate
+```{r}
+exploreNumVariable("MonthlyRate")
+```
+
+
+PercentSalaryHike
+```{r}
+exploreNumVariable("PercentSalaryHike")
+```
+
+
+
+StockOptionLevel
+```{r}
+exploreNumVariable("StockOptionLevel")
+```
+

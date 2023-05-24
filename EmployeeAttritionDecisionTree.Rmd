@@ -1,0 +1,57 @@
+---
+title: "HR Employee Analysis Tree"
+output: html_document
+date: "2022-12-11"
+---
+
+```{r}
+library(tidyverse)
+library(caret)
+HRData <- read_csv("HR Employee Attrition.csv")
+HRData <- HRData %>% select(c(-EmployeeCount, -StandardHours, -Over18, -EmployeeNumber))
+```
+
+
+
+Split the data into train and test data
+```{r}
+trainList <- createDataPartition(y=HRData$Attrition, p=.70, list=FALSE)
+training <- HRData[trainList,]
+testing <- HRData[-trainList,]
+```
+
+
+
+
+```{r}
+library(rpart)
+HRTree <- rpart(Attrition ~ ., data=training)
+```
+
+```{r}
+HRTree
+```
+
+```{r}
+library(rpart.plot)
+prp(HRTree, faclen=0, cex=0.8, extra=1)
+```
+
+
+Create a Confusion Matrix from the predictions on the test data
+```{r}
+treePred <- predict(HRTree, newdata=testing, type="class")
+actualAttrition <- as.factor(testing$Attrition=="Yes")
+confMatrix <- table(treePred, actualAttrition)
+confMatrix
+```
+```{r}
+accuracy <- 1 - (sum(confMatrix) - sum(diag(confMatrix))) / sum(confMatrix)
+accuracy
+```
+
+```{r}
+varImp(HRTree) %>% arrange(desc(Overall))
+```
+
+
